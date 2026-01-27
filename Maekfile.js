@@ -52,7 +52,9 @@ if (maek.OS === "windows") {
 		"/wd4100", //unreferenced formal parameter
 		"/wd4146", //-1U is unsigned
 		"/wd4201", //nameless struct/union
+		"/wd4834",
 		"/wd4840"  //string as variadic function argument
+
 	);
 } else if (maek.OS === "linux") {
 	maek.options.CPPFlags.push(

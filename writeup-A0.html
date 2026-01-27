@@ -1,0 +1,104 @@
+**Assignment 0 Report**
+
+AndrewID: XXXX
+
+(##) About this template
+
+* You can view your writeup by opening it in a browser - right click this file and open with your browser of choice.
+
+* Replace reference images with your own screenshots or renders when applicable.
+
+* Include descriptions of any encountered problems and the time you spent on each task.
+
+(##) A0T1
+
+Step 1: Clone
+<div class="twentytwenty-container">
+    <img src="hw1pics\Screenshot1.png" alt="Github-CLI">
+</div>
+or
+<div class="twentytwenty-container">
+    <img src="A0-writeup/reference/step1-github-ref-2.png" alt="Github-Web">
+</div>
+
+Step 2: General Setup
+
+Visual Studio:
+<div class="twentytwenty-container">
+    <img src="hw1pics\Screenshot2.png" alt="Visual Studio">
+</div>
+
+Node:
+<div class="twentytwenty-container">
+    <img src="hw1pics\Screenshot3.png" alt="Node">
+</div>
+
+Nest-libs:
+<div class="twentytwenty-container">
+    <img src="hw1pics\Screenshot4.png" alt="Nest-libs">
+</div>
+
+Step 3: Build and Run
+<div class="twentytwenty-container">
+    <img src="hw1pics\Screenshot6.png" alt="GUI">
+</div>
+<div class="twentytwenty-container">
+    <img src="hw1pics\Screenshot7.png" alt="Run-tests">
+</div>
+
+(##) A0T2
+
+Your completion of this task will be graded based on your `test.a0.task2.problems.cpp` file and your responses to the below questions.
+
+For each of the problems you solved in task 2, characterise the bug in your own words and explain one other scenario that may cause this 
+type of bug.
+
+Problem 1:First error is that prinf is missing a ;, which is syntax error might happen to any lines of codes.Second error is 
+typo of cout to cour, which might happen to any other type variable like string as strong. The third error is given.
+
+Problem 2:The filter candition is to replace the value with 0 if i < (y / factor),and y and factor are int, so y/factor is 
+integer division where 4/3=1 instead of 1.333. So I will say this is a type error that the expect output uses float but it
+uses int. This also happens with multiplication, like filtering out element with 0 by doing some multiplication operations 
+this kind error will also happens.I just cast it to float and it's resolved.
+
+Problem 3:The end() point to 1 pass the last element instead of the last element. A another scenario is that if you want to 
+acess last element the of a array  you should do A[n-1] instead of A[n],where n is number of elements.
+
+Problem 4:This is a miscomparision problem, where vec1.at(i) == vec2.at(j) just returns a boolean of 0,1 and 0 in vec3 such 
+that the whole expression evaluates to true way too many times. A another scenario is when you try to do a if statement to check
+check is x,y,z is all the same with x==y==z, the same logic applies that even x!=y, this condition will be true if z is 0.
+(5==4==0 will be true)
+
+
+(##) A0T3
+
+You do not need any screenshots for this task. Your completion will be graded based on your `src` submission.
+
+(##) GenAI Use
+
+Which model(s) did you use (e.g., ChatGPT-4, Claude-2, etc.)?
+
+For what purpose(s) did you use GenAI (e.g., brainstorming, code generation, debugging, etc.)?
+
+What was it good at? What was it bad at?
+
+I used GPT 4 to make sure I download stuff correctly and installed the required components of the applications only, 
+and it was good at it. I also ran into errors when try to run code . x64 native tool, and it suggest me to reinstall
+and it worked. But it was bad at it, and it made me try a lot of other stuff before the reinstall.I felt like it 
+will help a lot ,if first reci is for setting up stuff instead of the math review.
+
+(##) Feedback
+
+Use this section to provide feedback about the assignment.
+
+<!--- Markdeep & image comparison library - probably no need to change anything below -->
+<style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style>
+<script src="resources/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="resources/jquery.event.move.js"></script>
+<script src="resources/jquery.twentytwenty.js"></script>
+<link href="resources/offcanvas.css" rel="stylesheet">
+<link href="resources/twentytwenty.css" rel="stylesheet" type="text/css" />
+<script>
+$(window).load(function(){$(".twentytwenty-container").twentytwenty({default_offset_pct: 0.5});});
+</script>
