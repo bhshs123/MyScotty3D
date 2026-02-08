@@ -186,3 +186,189 @@ Test test_a1_task2_simple_vertical("a1.task2.simple.vertical", []() {
 });
 
 
+/*
+    The following four testcases cover all four possible combinations of line direction:
+    - x is the major axis, positive slope
+    - x is the major axis, negative slope
+    - y is the major axis, positive slope
+    - y is the major axis, negative slope
+*/
+
+Test test_a1_task2_extra_x_axis_slope_positive("a1.task2.extra.xAxis.slope.positive", []() {
+    check_line_covers(
+        "x is longer axis and slope is positive",
+        { Vec2(0.1f, 0.2f), Vec2(2.8f, 1.9f) },
+        {".##",
+         "#.."}
+    );
+});
+
+Test test_a1_task2_extra_x_axis_slope_negative("a1.task2.extra.xAxis.slope.negative", []() {
+    check_line_covers(
+        "x is longer axis and slope is negative",
+        { Vec2(0.5f, 1.5f), Vec2(3.0f, 0.75f) },
+        {"##.",
+         "..#"}
+    );
+});
+
+Test test_a1_task2_extra_y_axis_slope_positive("a1.task2.extra.yAxis.slope.positive", []() {
+    check_line_covers(
+        "y is longer axis and slope is positive (with respect to y axis)",
+        { Vec2(0.2f, 0.1f), Vec2(2.1f, 2.9f) },
+        {".#.",
+         ".#.",
+         "#.."}
+    );
+});
+
+
+Test test_a1_task2_extra_y_axis_slope_negative("a1.task2.extra.yAxis.slope.negative", []() {
+    check_line_covers(
+        "y is longer axis and slope is negative (with respect to y axis)",
+        { Vec2(2.2f, 0.1f), Vec2(0.3f, 2.9f) },
+        {"#..",
+         ".#.",
+         ".#."}
+    );
+});
+
+/*
+    The following two testcases check if your code can handle cases where the starting point of the line segment
+    has a larger coordinate on the major axis than the ending point (i.e., the line is specified in reverse order).
+*/
+
+Test test_a1_task2_extra_x_axis_reverse("a1.task2.extra.xAxis.reverse", []() {
+    check_line_covers(
+        "line with start.x > end.x (x is major axis)",
+        { Vec2(1.9f, 0.9f), Vec2(0.1f, 0.2f) },
+        {"...",
+         "...",
+         "##."}
+    );
+});
+
+Test test_a1_task2_extra_y_axis_reverse("a1.task2.extra.yAxis.reverse", []() {
+    check_line_covers(
+        "line with start.y > end.y (y is major axis)",
+        { Vec2(0.3f, 2.1f), Vec2(1.2f, 0.2f) },
+        {"...",
+         "#..",
+         ".#."}
+    );
+});
+
+/*
+    The following five testcases cover all possible boundary cases where a line segment is associated with exactly one diamond:
+    - Start outside, end inside the diamond
+    - Start inside, end outside the diamond
+    - Start and end both inside the diamond (entirely within)
+    - Start and end both outside the diamond (corsses the diamond with two intersections)
+    - Start and end both outside the diamond (entirely outside, no intersection)
+*/
+
+Test test_a1_task2_extra_singleDiamond_across("a1.task2.extra.singleDiamond.across", []() {
+    check_line_covers(
+        "line crosses diamond (1,1)",
+        { Vec2(1.1f, 1.1f), Vec2(1.9f, 1.9f) },
+        {"...",
+         ".#.",
+         "..."}
+    );
+});
+
+Test test_a1_task2_extra_singleDiamond_inside("a1.task2.extra.singleDiamond.inside", []() {
+    check_line_covers(
+        "line falls entirely inside diamond (1,1)",
+        { Vec2(1.3f, 1.3f), Vec2(1.4f, 1.8f) },
+        {"...",
+         "...",
+         "..."}
+    );
+});
+
+Test test_a1_task2_extra_singleDiamond_enter("a1.task2.extra.singleDiamond.enter", []() {
+    check_line_covers(
+        "line enters diamond (1,1) from outside",
+        { Vec2(1.25f, 1.25f), Vec2(1.5f, 1.5f) },
+        {"...",
+         "...",
+         "..."}
+    );
+});
+
+Test test_a1_task2_extra_singleDiamond_exit("a1.task2.extra.singleDiamond.exit", []() {
+    check_line_covers(
+        "line exits diamond (1,1) to outside",
+        { Vec2(1.25f, 1.25f), Vec2(1.9f, 1.9f) },
+        {"...",
+         ".#.",
+         "..."}
+    );
+});
+
+Test test_a1_task2_extra_singleDiamond_no_intersect("a1.task2.extra.singleDiamond.no_intersect", []() {
+    check_line_covers(
+        "line does not intersect any diamond",
+        { Vec2(1.1f, 1.9f), Vec2(1.2f, 1.8f) },
+        {"...",
+         "...",
+         "..."}
+    );
+});
+
+/*
+    The following testcases check several edge cases where line segments pass through diamond endpoints.
+    However, according to TA, the rendering rules for these boundary cases are ambiguous.
+    So if you believe your implementation is reasonable, it is acceptable even if it does not pass these specific tests!
+*/
+
+Test test_a1_task2_extra_edge_1("a1.task2.extra.edge.1", []() {
+    check_line_covers(
+        "edge case 1",
+        { Vec2(1.5f, 1.0f), Vec2(3.0f, 1.5f) },
+        {"...",
+         ".##",
+         "..."}
+    );
+});
+
+Test test_a1_task2_extra_edge_2("a1.task2.extra.edge.2", []() {
+    check_line_covers(
+        "edge case 2",
+        { Vec2(0.0f, 0.5f), Vec2(3.0f, 1.5f) },
+        {"...",
+         ".##",
+         "#.."}
+    );
+});
+
+Test test_a1_task2_extra_edge_3("a1.task2.extra.edge.3", []() {
+    check_line_covers(
+        "edge case 3",
+        { Vec2(0.5f, 3.0f), Vec2(2.0f, 0.0f) },
+        {"#..",
+         ".#.",
+         ".#."}
+    );
+});
+
+Test test_a1_task2_extra_edge_4("a1.task2.extra.edge.4", []() {
+    check_line_covers(
+        "edge case 4",
+        { Vec2(0.0f, 1.0f), Vec2(3.0f, 1.0f) },
+        {"...",
+         "###",
+         "..."}
+    );
+});
+
+Test test_a1_task2_extra_edge_5("a1.task2.extra.edge.5", []() {
+    check_line_covers(
+        "edge case 5",
+        { Vec2(0.0f, 0.0f), Vec2(0.0f, 3.0f) },
+        {"#..",
+         "#..",
+         "#.."}
+    );
+});

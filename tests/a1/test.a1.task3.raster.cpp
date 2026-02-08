@@ -313,3 +313,137 @@ Test test_a1_task3_raster_thin_2px("a1.task3.raster.thin.2px", []() {
 });
 
 
+Test test_a1_task3_raster_edge1("a1.task3.raster.edge.1", []() {
+	check_rasterize_triangles(
+		"edge case 1",
+		{ FPClippedVertex{ Vec3{ 0.5f, 3.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 3.5f, 3.5f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 0.5f, 0.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 0.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 0.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 0.5f, 3.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 3.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 2.5f, 3.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge2("a1.task3.raster.edge.2", []() {
+	check_rasterize_triangles(
+		"edge case 2",
+		{ FPClippedVertex{ Vec3{ 0.5f, 0.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 3.5f, 3.5f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 3.5f, 0.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 1.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 2.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 2.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge3("a1.task3.raster.edge.3", []() {
+	check_rasterize_triangles(
+		"edge case 3",
+		{ FPClippedVertex{ Vec3{ 0.0f, 3.0f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 5.0f, 2.0f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 1.0f, 0.0f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 1.5f, 0.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 0.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 2.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 3.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 0.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge4("a1.task3.raster.edge.4", []() {
+	check_rasterize_triangles(
+		"edge case 4",
+		{ FPClippedVertex{ Vec3{ 0.5f, 0.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 1.5f, 1.5f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 1.5f, 0.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ }
+	);
+});
+
+Test test_a1_task3_raster_edge5("a1.task3.raster.edge.5", []() {
+	check_rasterize_triangles(
+		"edge case 5",
+		{ FPClippedVertex{ Vec3{ 1.5f, 0.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 1.5f, 2.5f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 2.5f, 1.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 1.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge6("a1.task3.raster.edge.6", []() {
+	check_rasterize_triangles(
+		"edge case 6",
+		{ FPClippedVertex{ Vec3{ 0.5f, 1.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 2.0f, 3.0f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 1.5f, 0.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 0.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge7("a1.task3.raster.edge.7", []() {
+	check_rasterize_triangles(
+		"edge case 7",
+		{ FPClippedVertex{ Vec3{ 0.5f, 3.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 1.5f, 0.5f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 1.5f, 2.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ }
+	);
+});
+
+Test test_a1_task3_raster_edge8("a1.task3.raster.edge.8", []() {
+	check_rasterize_triangles(
+		"edge case 8",
+		{ FPClippedVertex{ Vec3{ 4.75f, 1.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 2.75f, 3.25f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 0.75f, 1.5f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 2.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 3.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge9("a1.task3.raster.edge.9", []() {
+	check_rasterize_triangles(
+		"edge case 9",
+		{ FPClippedVertex{ Vec3{ 0.0f, 0.0f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 6.0f, 2.0f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 4.0f, 0.0f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 1.5f, 0.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 2.5f, 0.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 3.5f, 0.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 4.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge10("a1.task3.raster.edge.10", []() {
+	check_rasterize_triangles(
+		"edge case 10",
+		{ FPClippedVertex{ Vec3{ 3.0f, 0.0f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 2.0f, 3.0f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 0.0f, 1.0f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 1.5f, 0.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 2.5f, 0.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 0.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
+
+Test test_a1_task3_raster_edge11("a1.task3.raster.edge.11", []() {
+	check_rasterize_triangles(
+		"edge case 11",
+		{ FPClippedVertex{ Vec3{ 2.5f, 1.5f, 0.5f }, 1.0f, { 1.0f } },
+		  FPClippedVertex{ Vec3{ 0.0f, 3.0f, 0.5f }, 2.0f, { 2.0f } },
+		  FPClippedVertex{ Vec3{ 1.0f, 0.0f, 0.5f }, 3.0f, { 3.0f } } },
+		{ FPFragment{ Vec3{ 0.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 1.5f, 1.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },
+		  FPFragment{ Vec3{ 0.5f, 2.5f, 0.5f }, {1.0f}, { Vec2{0.0f} } },}
+	);
+});
