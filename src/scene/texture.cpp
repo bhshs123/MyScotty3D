@@ -25,16 +25,48 @@ Spectrum sample_nearest(HDR_Image const &image, Vec2 uv) {
 Spectrum sample_bilinear(HDR_Image const &image, Vec2 uv) {
 	// A1T6: sample_bilinear
 	//TODO: implement bilinear sampling strategy on texture 'image'
+	float x = uv.x * float(image.w);
+	float y = uv.y * float(image.h);
+	int32_t xp = int32_t(std::floor(x-0.5f));
+	int32_t yp = int32_t(std::floor(y-0.5f));
+	int32_t x1 = xp+1;
+	int32_t y1 = yp+1;
+	float cx = (x-0.5f)-float(xp);
+	float cy = (y-0.5f)-float(yp);
 
-	return sample_nearest(image, uv); //placeholder so image doesn't look blank
+	xp = std::clamp(xp, 0, int32_t(image.w)-1);
+	x1 = std::clamp(x1, 0, int32_t(image.w)-1);
+	yp = std::clamp(yp, 0, int32_t(image.h)-1);
+	y1 = std::clamp(y1, 0, int32_t(image.h)-1);
+
+	Spectrum t00 = image.at(xp, yp); //t(x',y')
+	Spectrum t10 = image.at(x1, yp); //t(x'+1,y')
+	Spectrum t01 = image.at(xp, y1); //t(x',y'+1)
+	Spectrum t11 = image.at(x1, y1); //t(x'+1,y'+1)
+	Spectrum tx0 = (1.0f-cx)*t00+cx*t10; 
+	Spectrum tx1 = (1.0f-cx)*t01+cx*t11; 
+	return (1.0f-cy)*tx0+cy*tx1; 
 }
 
 
 Spectrum sample_trilinear(HDR_Image const &base, std::vector< HDR_Image > const &levels, Vec2 uv, float lod) {
 	// A1T6: sample_trilinear
-	//TODO: implement trilinear sampling strategy on using mip-map 'levels'
+	//TODO: implement trilinear sampling strategy on using mip-map 'levels' 
 
-	return sample_nearest(base, uv); //placeholder so image doesn't look blank
+	float lodp = std::clamp(lod, 0.0f, float(levels.size()));
+	int dp = int(std::floor(lodp));
+	int dp1 = std::min(dp + 1, int(levels.size()));
+	float cd = lodp - float(dp);
+
+	auto lv_img = [&](int32_t L) -> HDR_Image const& {
+		if (L <= 0) return base;
+		return levels[uint32_t(L - 1)];
+	};
+	HDR_Image const &img0 = lv_img(dp);
+	HDR_Image const &img1 = lv_img(dp1);
+	Spectrum td = sample_bilinear(img0, uv);
+	Spectrum td1 = sample_bilinear(img1, uv);
+	return (1.0f-cd)*td+cd*td1;
 }
 
 /*
@@ -90,7 +122,12 @@ void generate_mipmap(HDR_Image const &base, std::vector< HDR_Image > *levels_) {
 
 		// A1T6: generate
 		//TODO: Write code to fill the levels of the mipmap hierarchy by downsampling
-
+		for (uint32_t y = 0; y < dst.h; ++y) {
+        	for (uint32_t x = 0; x < dst.w; ++x) {
+				Vec2 v = Vec2((float(x)+0.5f)/float(dst.w), (float(y)+0.5f)/float(dst.h));
+				 dst.at(x, y) = sample_bilinear(src, v);
+			}
+		}
 		//Be aware that the alignment of the samples in dst and src will be different depending on whether the image is even or odd.
 
 	};

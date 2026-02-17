@@ -30,10 +30,17 @@ HDR_Image Framebuffer::resolve_colors() const {
 	// TODO: update to support sample patterns with more than one sample.
 
 	HDR_Image image(width, height);
+	uint32_t ss = uint32_t(sample_pattern.centers_and_weights.size());
 
 	for (uint32_t y = 0; y < height; ++y) {
 		for (uint32_t x = 0; x < width; ++x) {
-			image.at(x, y) = color_at(x, y, 0);
+			 
+			Spectrum res = Spectrum(0.0f);
+			for (uint32_t s = 0; s < ss; ++s) {
+				float w = sample_pattern.centers_and_weights[s].z; // sample weight
+				res +=w*color_at(x, y, s);
+			}
+			image.at(x, y) = res;
 		}
 	}
 

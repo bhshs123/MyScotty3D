@@ -87,22 +87,43 @@ void Pipeline<primitive_type, Program, flags>::run(std::vector<Vertex> const& ve
 		static_assert(primitive_type == PrimitiveType::Lines, "Unsupported primitive type.");
 	}
 
+	std::vector<Vec3> const &samples = framebuffer.sample_pattern.centers_and_weights;
+
+	for (uint32_t s = 0; s < samples.size(); ++s) {
+
+	Vec2 offset = Vec2(samples[s].x,samples[s].y)-Vec2(0.5f, 0.5f);
 	//--------------------------
 	// rasterize primitives:
 
 	std::vector<Fragment> fragments;
-
+	fragments.clear();
+	
 	// helper used to put output of rasterization functions into fragments:
 	auto emit_fragment = [&](Fragment const& f) { fragments.emplace_back(f); };
 
 	// actually do rasterization:
 	if constexpr (primitive_type == PrimitiveType::Lines) {
 		for (uint32_t i = 0; i + 1 < clipped_vertices.size(); i += 2) {
-			rasterize_line(clipped_vertices[i], clipped_vertices[i + 1], emit_fragment);
+            ClippedVertex CV = clipped_vertices[i];
+            ClippedVertex CV1 = clipped_vertices[i + 1];
+            CV.fb_position.x += offset.x; 
+			CV.fb_position.y += offset.y;
+            CV1.fb_position.x += offset.x; 
+			CV1.fb_position.y += offset.y; 
+			rasterize_line(CV, CV1 , emit_fragment);
 		}
 	} else if constexpr (primitive_type == PrimitiveType::Triangles) {
 		for (uint32_t i = 0; i + 2 < clipped_vertices.size(); i += 3) {
-			rasterize_triangle(clipped_vertices[i], clipped_vertices[i + 1], clipped_vertices[i + 2], emit_fragment);
+            ClippedVertex CV = clipped_vertices[i];
+            ClippedVertex CV1 = clipped_vertices[i + 1];
+			ClippedVertex CV2 = clipped_vertices[i + 2];
+            CV.fb_position.x += offset.x; 
+			CV.fb_position.y += offset.y;
+            CV1.fb_position.x += offset.x; 
+			CV1.fb_position.y += offset.y; 
+            CV2.fb_position.x += offset.x; 
+			CV2.fb_position.y += offset.y;
+			rasterize_triangle(CV, CV1 ,CV2 , emit_fragment);
 		}
 	} else {
 		static_assert(primitive_type == PrimitiveType::Lines, "Unsupported primitive type.");
@@ -128,8 +149,8 @@ void Pipeline<primitive_type, Program, flags>::run(std::vector<Vertex> const& ve
 		}
 
 		// local names that refer to destination sample in framebuffer:
-		float& fb_depth = framebuffer.depth_at(x, y, 0);
-		Spectrum& fb_color = framebuffer.color_at(x, y, 0);
+		float& fb_depth = framebuffer.depth_at(x, y, s);
+		Spectrum& fb_color = framebuffer.color_at(x, y, s);
 
 
 		// depth test:
@@ -186,6 +207,7 @@ void Pipeline<primitive_type, Program, flags>::run(std::vector<Vertex> const& ve
 			     "wrong with the clip_triangle function.",
 			     out_of_range);
 		}
+	}
 	}
 }
 
@@ -652,9 +674,9 @@ void Pipeline<p, P, flags>::rasterize_triangle(
 					float w0 = dir(b, c, point)/area;  
 					float w1 = dir(c, a, point)/area;  
 					float w2 = dir(a, b, point)/area;   
-					float za = va.fb_position.z; 
-					float zb = vb.fb_position.z; 
-					float zc = vc.fb_position.z; 
+					float za = A.fb_position.z; 
+					float zb = B.fb_position.z; 
+					float zc = C.fb_position.z; 
 					frag.fb_position.z = w0*za+w1*zb+w2*zc;
 					frag.attributes = va.attributes;
 					frag.derivatives.fill(Vec2(0.0f, 0.0f));
@@ -669,14 +691,199 @@ void Pipeline<p, P, flags>::rasterize_triangle(
 
 		// As a placeholder, here's code that calls the Flat interpolation version of the function:
 		//(remove this and replace it with a real solution)
-		Pipeline<PrimitiveType::Lines, P, (flags & ~PipelineMask_Interp) | Pipeline_Interp_Flat>::rasterize_triangle(va, vb, vc, emit_fragment);
+		ClippedVertex A = va;
+		ClippedVertex B = vb;
+		ClippedVertex C = vc;
+
+		int xMin,yMin,xMax,yMax; 
+		Vec2 a = A.fb_position.xy();
+		Vec2 b = B.fb_position.xy();
+		Vec2 c = C.fb_position.xy(); 
+
+		xMin= (int)std::ceil(std::min({a.x, b.x, c.x}) -0.5f);
+		yMin= (int)std::ceil(std::min({a.y, b.y, c.y}) -0.5f);
+		xMax= (int)std::floor(std::max({a.x, b.x, c.x}) -0.5f);
+		yMax= (int)std::floor(std::max({a.y, b.y, c.y}) -0.5f); 
+
+		auto dir=[](Vec2 v0, Vec2 v1, Vec2 target) {
+			// line v0,v1 to the direction of target
+			return (target.x-v0.x)*(v1.y-v0.y)-(target.y - v0.y) * (v1.x - v0.x);
+		};
+ 
+		auto is_top_left=[](Vec2 v0, Vec2 v1) { 
+			float dx = v1.x-v0.x;
+			float dy = v1.y-v0.y;
+    		return (dy>0.0f) || (dy == 0.0f && dx > 0.0f);
+		} ;    
+
+		float area = dir(a, b, c);    
+		if (area == 0.0f) return;  
+
+		//Makesure CCW
+		if (area < 0.0f) {
+			std::swap(B, C);
+			std::swap(b, c);
+			area = -area;
+		}
+		auto barycentric = [&](Vec2 p) -> Vec3 {
+			float w0 = dir(b, c, p)/area;
+			float w1 = dir(c, a, p)/area;
+			float w2 = dir(a, b, p)/area;
+			return Vec3(w0, w1, w2);
+    	};
+		auto inter_attri = [&](Vec3 w) {
+			auto res=A.attributes; 
+			for (uint32_t i = 0; i < uint32_t(res.size()); i++) {
+				res[i] = w.x*A.attributes[i] +
+					w.y*B.attributes[i] +
+					w.z*C.attributes[i];
+			}
+			return res;
+		};
+
+		Vec2 point;
+		for (int y = yMin; y <= yMax; ++y) {
+    		for (int x = xMin; x <= xMax; ++x) {
+				point = Vec2(x + 0.5f, y + 0.5f);
+				float e0 = dir(a, b, point);  //edge AB 
+				float e1 = dir(b, c, point);  //edge BC 
+				float e2 = dir(c, a, point);  //edge CA  
+				 
+				bool  r0 = (e0 > 0.0f || (e0 == 0.0f && is_top_left(a, b)));
+				bool  r1 = (e1 > 0.0f || (e1 == 0.0f && is_top_left(b, c)));
+				bool  r2 = (e2 > 0.0f || (e2 == 0.0f && is_top_left(c, a)));
+
+				bool valid = (r0 && r1 && r2); 
+				 
+				if (valid){
+					Fragment frag;  
+					frag.fb_position = Vec3(point.x, point.y, 0.0f); 
+					Vec3 w = barycentric(point);
+
+					float za = A.fb_position.z; 
+					float zb = B.fb_position.z; 
+					float zc = C.fb_position.z; 
+					//change for interpolation
+					frag.fb_position.z = w.x*za+w.y*zb+w.z*zc; 
+					auto attr = inter_attri(w);
+					frag.attributes = attr;
+					//Calculating derivatives
+
+					auto attr_dx = inter_attri(barycentric(Vec2(point.x+1.0f, point.y)));
+					auto attr_dy = inter_attri(barycentric(Vec2(point.x, point.y + 1.0f)));
+
+					for (uint32_t i = 0; i < frag.derivatives.size(); i++) {
+						frag.derivatives[i].x = attr_dx[i]-attr[i];
+						frag.derivatives[i].y = attr_dy[i]-attr[i];
+					} 
+
+					emit_fragment(frag); 
+				}
+			}
+		}
+
+
 	} else if constexpr ((flags & PipelineMask_Interp) == Pipeline_Interp_Correct) {
 		// A1T5: perspective correct triangles
 		// TODO: rasterize triangle (block comment above this function).
 
 		// As a placeholder, here's code that calls the Screen-space interpolation function:
 		//(remove this and replace it with a real solution)
-		Pipeline<PrimitiveType::Lines, P, (flags & ~PipelineMask_Interp) | Pipeline_Interp_Smooth>::rasterize_triangle(va, vb, vc, emit_fragment);
+		ClippedVertex A = va;
+		ClippedVertex B = vb;
+		ClippedVertex C = vc;
+
+		int xMin,yMin,xMax,yMax; 
+		Vec2 a = A.fb_position.xy();
+		Vec2 b = B.fb_position.xy();
+		Vec2 c = C.fb_position.xy(); 
+
+		xMin= (int)std::ceil(std::min({a.x, b.x, c.x}) -0.5f);
+		yMin= (int)std::ceil(std::min({a.y, b.y, c.y}) -0.5f);
+		xMax= (int)std::floor(std::max({a.x, b.x, c.x}) -0.5f);
+		yMax= (int)std::floor(std::max({a.y, b.y, c.y}) -0.5f); 
+
+		auto dir=[](Vec2 v0, Vec2 v1, Vec2 target) {
+			// line v0,v1 to the direction of target
+			return (target.x-v0.x)*(v1.y-v0.y)-(target.y - v0.y) * (v1.x - v0.x);
+		};
+ 
+		auto is_top_left=[](Vec2 v0, Vec2 v1) { 
+			float dx = v1.x-v0.x;
+			float dy = v1.y-v0.y;
+    		return (dy>0.0f) || (dy == 0.0f && dx > 0.0f);
+		} ;    
+
+		float area = dir(a, b, c);    
+		if (area == 0.0f) return;  
+
+		//Makesure CCW
+		if (area < 0.0f) {
+			std::swap(B, C);
+			std::swap(b, c);
+			area = -area;
+		}
+		auto barycentric = [&](Vec2 p) -> Vec3 {
+			float w0 = dir(b, c, p)/area;
+			float w1 = dir(c, a, p)/area;
+			float w2 = dir(a, b, p)/area;
+			return Vec3(w0, w1, w2);
+    	};
+		auto inter_attri = [&](Vec3 w) {
+			auto res=A.attributes; 
+			//modify for perspective
+			float inv_w_int = w.x*A.inv_w+w.y*B.inv_w+w.z*C.inv_w;
+
+			for (uint32_t i = 0; i < uint32_t(res.size()); i++) {
+				float a_inv_w_int =w.x*(A.attributes[i]*A.inv_w)
+				+w.y*(B.attributes[i]*B.inv_w)+w.z*(C.attributes[i]*C.inv_w); 
+				res[i] = a_inv_w_int/inv_w_int;
+			}
+			return res;
+		};
+
+		Vec2 point;
+		for (int y = yMin; y <= yMax; ++y) {
+    		for (int x = xMin; x <= xMax; ++x) {
+				point = Vec2(x + 0.5f, y + 0.5f);
+				float e0 = dir(a, b, point);  //edge AB 
+				float e1 = dir(b, c, point);  //edge BC 
+				float e2 = dir(c, a, point);  //edge CA  
+				 
+				bool  r0 = (e0 > 0.0f || (e0 == 0.0f && is_top_left(a, b)));
+				bool  r1 = (e1 > 0.0f || (e1 == 0.0f && is_top_left(b, c)));
+				bool  r2 = (e2 > 0.0f || (e2 == 0.0f && is_top_left(c, a)));
+
+				bool valid = (r0 && r1 && r2); 
+				 
+				if (valid){
+					Fragment frag;  
+					frag.fb_position = Vec3(point.x, point.y, 0.0f); 
+					Vec3 w = barycentric(point);
+
+					float za = A.fb_position.z; 
+					float zb = B.fb_position.z; 
+					float zc = C.fb_position.z; 
+					//change for interpolation
+					frag.fb_position.z = w.x*za+w.y*zb+w.z*zc; 
+					auto attr = inter_attri(w);
+					frag.attributes = attr;
+					//Calculating derivatives
+
+					auto attr_dx = inter_attri(barycentric(Vec2(point.x+1.0f, point.y)));
+					auto attr_dy = inter_attri(barycentric(Vec2(point.x, point.y + 1.0f)));
+
+					for (uint32_t i = 0; i < frag.derivatives.size(); i++) {
+						frag.derivatives[i].x = attr_dx[i]-attr[i];
+						frag.derivatives[i].y = attr_dy[i]-attr[i];
+					} 
+
+					emit_fragment(frag); 
+				}
+			}
+		}
+
+
 	}
 }
 
