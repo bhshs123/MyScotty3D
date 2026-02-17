@@ -725,10 +725,10 @@ void Pipeline<p, P, flags>::rasterize_triangle(
 			std::swap(b, c);
 			area = -area;
 		}
-		auto barycentric = [&](Vec2 p) -> Vec3 {
-			float w0 = dir(b, c, p)/area;
-			float w1 = dir(c, a, p)/area;
-			float w2 = dir(a, b, p)/area;
+		auto barycentric = [&](Vec2 point) -> Vec3 {
+			float w0 = dir(b, c, point)/area;
+			float w1 = dir(c, a, point)/area;
+			float w2 = dir(a, b, point)/area;
 			return Vec3(w0, w1, w2);
     	};
 		auto inter_attri = [&](Vec3 w) {
@@ -823,10 +823,10 @@ void Pipeline<p, P, flags>::rasterize_triangle(
 			std::swap(b, c);
 			area = -area;
 		}
-		auto barycentric = [&](Vec2 p) -> Vec3 {
-			float w0 = dir(b, c, p)/area;
-			float w1 = dir(c, a, p)/area;
-			float w2 = dir(a, b, p)/area;
+		auto barycentric = [&](Vec2 point) -> Vec3 {
+			float w0 = dir(b, c, point)/area;
+			float w1 = dir(c, a, point)/area;
+			float w2 = dir(a, b, point)/area;
 			return Vec3(w0, w1, w2);
     	};
 		auto inter_attri = [&](Vec3 w) {
