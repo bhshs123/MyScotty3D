@@ -102,3 +102,310 @@ Test test_a2_l2_split_edge_edge_boundary("a2.l2.split_edge.edge.boundary", []() 
 	expect_split(mesh, edge, after);
 });
 
+/*
+
+CASE 1: TWO TRIANGLES (Interior Edge)
+
+Initial mesh (Square made of 2 triangles):
+
+0-------3
+
+| \ |
+
+| \ |
+
+| \ |
+
+1-------2
+
+Split Edge on Edge: 0-2 (Diagonal)
+
+After mesh (Square made of 4 triangles):
+
+0-------4
+
+| \ / |
+
+| \2/ |
+
+| / \ |
+
+1-------3
+
+*/
+
+Test test_a2_l2_split_edge_two_triangles("a2.l2.split_edge.two_triangles", []() {
+
+Halfedge_Mesh mesh = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(-1.0f, 1.0f, 0.0f), Vec3(-1.0f, -1.0f, 0.0f),
+
+Vec3(1.0f, -1.0f, 0.0f), Vec3(1.0f, 1.0f, 0.0f)
+
+}, {
+
+{0, 1, 2},
+
+{0, 2, 3}
+
+});
+
+Halfedge_Mesh::EdgeRef edge = mesh.halfedges.begin()->next->next->edge;
+
+Halfedge_Mesh after = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(-1.0f, 1.0f, 0.0f), Vec3(-1.0f, -1.0f, 0.0f),
+
+Vec3(0.0f, 0.0f, 0.0f), // added vertex 2
+
+Vec3(1.0f, -1.0f, 0.0f), Vec3(1.0f, 1.0f, 0.0f)
+
+}, {
+
+{0, 1, 2},
+
+{2, 1, 3},
+
+{0, 2, 4},
+
+{2, 3, 4}
+
+});
+
+expect_split(mesh, edge, after);
+
+});
+
+/*
+
+CASE 2: SINGLE TRIANGLE (Boundary Edge)
+
+Initial mesh:
+
+0
+
+|\
+
+| \
+
+| \
+
+1---2
+
+Split Edge on Edge: 1-2 (Bottom boundary)
+
+After mesh:
+
+0
+
+|\ \
+
+| \ \
+
+| \ \
+
+1---2---3
+
+*/
+
+Test test_a2_l2_split_edge_triangle_boundary("a2.l2.split_edge.triangle_boundary", []() {
+
+Halfedge_Mesh mesh = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(0.0f, 1.0f, 0.0f), Vec3(-1.0f, -1.0f, 0.0f), Vec3(1.0f, -1.0f, 0.0f)
+
+}, {
+
+{0, 1, 2}
+
+});
+
+Halfedge_Mesh::EdgeRef edge = mesh.halfedges.begin()->next->edge;
+
+Halfedge_Mesh after = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(0.0f, 1.0f, 0.0f), Vec3(-1.0f, -1.0f, 0.0f),
+
+Vec3(0.0f, -1.0f, 0.0f), // added vertex 2
+
+Vec3(1.0f, -1.0f, 0.0f)
+
+}, {
+
+{0, 1, 2},
+
+{0, 2, 3}
+
+});
+
+expect_split(mesh, edge, after);
+
+});
+
+/*
+
+CASE 3: TWO QUADS (Interior Edge)
+
+Initial mesh:
+
+0---1---2
+
+| | |
+
+| | |
+
+| | |
+
+3---4---5
+
+Split Edge on Edge: 1-4
+
+After mesh:
+
+0---1---3
+
+| \ | |
+
+| 2 |
+
+| | \ |
+
+4---5---6
+
+*/
+
+Test test_a2_l2_split_edge_two_quads("a2.l2.split_edge.two_quads", []() {
+
+Halfedge_Mesh mesh = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(-1.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(1.0f, 1.0f, 0.0f),
+
+Vec3(-1.0f, -1.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f), Vec3(1.0f, -1.0f, 0.0f)
+
+}, {
+
+{0, 3, 4, 1},
+
+{1, 4, 5, 2}
+
+});
+
+Halfedge_Mesh::EdgeRef edge = mesh.halfedges.begin()->next->next->edge;
+
+Halfedge_Mesh after = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(-1.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f),
+
+Vec3(0.0f, 0.0f, 0.0f), // added vertex 2
+
+Vec3(1.0f, 1.0f, 0.0f),
+
+Vec3(-1.0f, -1.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f), Vec3(1.0f, -1.0f, 0.0f)
+
+}, {
+
+{0, 4, 5, 2},
+
+{0, 2, 1},
+
+{2, 5, 6},
+
+{1, 2, 6, 3}
+
+});
+
+expect_split(mesh, edge, after);
+
+});
+
+/*
+
+CASE 4: HIGH DEGREE VERTEX (Star Center)
+
+Initial mesh (Triangle Fan):
+
+1-------4
+
+| \ / |
+
+| \ /. |
+
+| 0. |
+
+| / \. |
+
+| / \ |
+
+2-------3
+
+Split Edge on Edge: 0-2
+
+After mesh:
+
+1---------5
+
+| \ /
+
+| | \ /
+
+| | 0
+
+| |/\
+
+| 2 \
+
+| / \ \
+
+3--------4
+
+*/
+
+Test test_a2_l2_split_edge_star_center("a2.l2.split_edge.star_center", []() {
+
+Halfedge_Mesh mesh = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(0.0f, 0.0f, 0.0f),
+
+Vec3(-1.0f, 1.0f, 0.0f), Vec3(-1.0f, -1.0f, 0.0f),
+
+Vec3(1.0f, -1.0f, 0.0f), Vec3(1.0f, 1.0f, 0.0f)
+
+}, {
+
+{0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 1}
+
+});
+
+Halfedge_Mesh::EdgeRef edge = mesh.halfedges.begin()->next->next->edge;
+
+Halfedge_Mesh after = Halfedge_Mesh::from_indexed_faces({
+
+Vec3(0.0f, 0.0f, 0.0f),
+
+Vec3(-1.0f, 1.0f, 0.0f),
+
+Vec3(-0.5f, -0.5f, 0.0f), // added vertex 2
+
+Vec3(-1.0f, -1.0f, 0.0f),
+
+Vec3(1.0f, -1.0f, 0.0f), Vec3(1.0f, 1.0f, 0.0f)
+
+}, {
+
+{0, 1, 2},
+
+{2, 1, 3},
+
+{0, 2, 4},
+
+{2, 3, 4},
+
+{0, 4, 5},
+    
+{0, 5, 1}
+
+});
+
+expect_split(mesh, edge, after);
+
+});
