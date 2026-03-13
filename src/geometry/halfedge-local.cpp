@@ -829,7 +829,7 @@ std::optional<Halfedge_Mesh::VertexRef> Halfedge_Mesh::collapse_edge(EdgeRef e) 
 		EdgeRef e_keep = he_prev->edge;
 		HalfedgeRef hk = he_prev;      
 		HalfedgeRef hk_twin = hk->twin; 
-
+ 
   
  
 		FixFaceEdgeTri(hx_twin, hk);
