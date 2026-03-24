@@ -110,9 +110,12 @@ void BVH<Primitive>::build(std::vector<Primitive>&& prims, size_t max_leaf_size)
  
 				if (n_left == 0 || n_right == 0) continue;
 
-				float cost =
-					left_box[split - 1].surface_area() * float(n_left) +
-					right_box[split].surface_area() * float(n_right);
+				float parent_area = node_box.surface_area();
+				constexpr float c_trav = 1.0f;
+				constexpr float c_isect = 1.0f;
+				float cost = c_trav +
+						(left_box[split - 1].surface_area() / parent_area) * float(n_left) * c_isect +
+						(right_box[split].surface_area() / parent_area) * float(n_right) * c_isect;
 
 				if (cost < best_cost) {
 					best_cost = cost;
@@ -129,7 +132,7 @@ void BVH<Primitive>::build(std::vector<Primitive>&& prims, size_t max_leaf_size)
 		//If valid
 		float cmin = centroid_box.min[best_axis];
 		float cmax = centroid_box.max[best_axis];
-		
+
 		auto begin = primitives.begin() + start;
 		auto end = begin + size;
 
