@@ -15,7 +15,14 @@ BBox Triangle::bbox() const {
     // Beware of flat/zero-volume boxes! You may need to
     // account for that here, or later on in BBox::hit.
 
-    BBox box;
+	const Vec3& p0 = vertex_list[v0].position;
+	const Vec3& p1 = vertex_list[v1].position;
+	const Vec3& p2 = vertex_list[v2].position;
+
+	BBox box;
+	box.enclose(p0);
+	box.enclose(p1);
+	box.enclose(p2);
     return box;
 }
 
@@ -29,7 +36,6 @@ Trace Triangle::hit(const Ray& ray) const {
     (void)v_0;
     (void)v_1;
     (void)v_2;
-
     // TODO (PathTracer): Task 2
     // Intersect the ray with the triangle defined by the three vertices.
 
@@ -42,6 +48,39 @@ Trace Triangle::hit(const Ray& ray) const {
                            // (this should be interpolated between the three vertex normals)
 	ret.uv = Vec2{};	   // What was the uv associated with the point of intersection?
 						   // (this should be interpolated between the three vertex uvs)
+
+	//triangle edges:
+	Vec3 e1 = v_1.position - v_0.position;
+	Vec3 e2 = v_2.position - v_0.position;
+
+	//Moller-Trumbore:
+	Vec3 pvec = cross(ray.dir, e2);
+	float det = dot(e1, pvec);
+
+	//Degenerate triangle:
+	if (det == 0.0f) return ret;
+
+	float inv_det = 1.0f / det;
+
+	Vec3 tvec = ray.point - v_0.position;
+	float u = dot(tvec, pvec) * inv_det;
+	if (u < 0.0f || u > 1.0f) return ret;
+
+	Vec3 qvec = cross(tvec, e1);
+	float v = dot(ray.dir, qvec) * inv_det;
+	if (v < 0.0f || u + v > 1.0f) return ret;
+
+	float t = dot(e2, qvec) * inv_det;
+	if (t < ray.dist_bounds.x || t > ray.dist_bounds.y) return ret;
+
+	float w = 1.0f - u - v;
+
+	ret.hit = true;
+	ret.distance = t; 
+	ret.position = ray.at(t);
+	ret.normal = (w * v_0.normal + u * v_1.normal + v * v_2.normal).unit();
+	ret.uv = w * v_0.uv + u * v_1.uv + v * v_2.uv;
+
     return ret;
 }
 

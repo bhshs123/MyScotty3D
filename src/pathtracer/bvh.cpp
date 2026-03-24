@@ -33,7 +33,132 @@ void BVH<Primitive>::build(std::vector<Primitive>&& prims, size_t max_leaf_size)
     // size configuration.
 
 	//TODO
+	if (primitives.empty()) {
+		root_idx = 0;
+		return;
+	}
+	struct Bucket {
+		BBox bbox;
+		size_t count = 0;
+	};
+	std::function<size_t(size_t, size_t)> build_res = [&](size_t start, size_t size) -> size_t {
+		//compute bbox
+		BBox node_box;
+		BBox centroid_box;
+		for (size_t i = start; i < start + size; ++i) {
+			BBox pb = primitives[i].bbox();
+			node_box.enclose(pb);
+			centroid_box.enclose(pb.center());
+		}
+		//create node
+		size_t node_idx = new_node(node_box, start, size, 0, 0); 
 
+		//if leaf
+		if (size <= max_leaf_size) {
+			nodes[node_idx].l = nodes[node_idx].r = 0;
+			return node_idx;
+		}
+		//SAH
+		static constexpr size_t n_buckets = 8;
+
+		float best_cost = std::numeric_limits<float>::infinity();
+		int best_axis = -1;
+		size_t best_split = 0; 
+		for (int axis = 0; axis < 3; ++axis) {
+
+			float cmin = centroid_box.min[axis];
+			float cmax = centroid_box.max[axis];
+			if (cmin == cmax) continue;
+
+			std::array<Bucket, n_buckets> buckets;
+
+			//assign primitives to buckets:
+			for (size_t i = start; i < start + size; ++i) {
+				BBox pb = primitives[i].bbox();
+				float c = pb.center()[axis];
+				float t = (c - cmin) / (cmax - cmin);
+				size_t b = std::min(n_buckets - 1, size_t(t * float(n_buckets)));
+				buckets[b].bbox.enclose(pb);
+				buckets[b].count++;
+			}
+
+			std::array<BBox, n_buckets> left_box, right_box;
+			std::array<size_t, n_buckets> left_count{}, right_count{};
+
+			BBox running_left;
+			size_t running_left_count = 0;
+			for (size_t i = 0; i < n_buckets; ++i) {
+				running_left.enclose(buckets[i].bbox);
+				running_left_count += buckets[i].count;
+				left_box[i] = running_left;
+				left_count[i] = running_left_count;
+			}
+
+			BBox running_right;
+			size_t running_right_count = 0;
+			for (int i = int(n_buckets) - 1; i >= 0; --i) {
+				running_right.enclose(buckets[i].bbox);
+				running_right_count += buckets[i].count;
+				right_box[i] = running_right;
+				right_count[i] = running_right_count;
+			}
+
+			//cehck all |B|-1 partitions
+			for (size_t split = 1; split < n_buckets; ++split) {
+				size_t n_left = left_count[split - 1];
+				size_t n_right = right_count[split];
+ 
+				if (n_left == 0 || n_right == 0) continue;
+
+				float cost =
+					left_box[split - 1].surface_area() * float(n_left) +
+					right_box[split].surface_area() * float(n_right);
+
+				if (cost < best_cost) {
+					best_cost = cost;
+					best_axis = axis;
+					best_split = split;
+				}
+			}
+		}
+		//If invalid SAH
+		if (best_axis == -1) {
+			nodes[node_idx].l = nodes[node_idx].r = 0;
+			return node_idx;
+		}
+		//If valid
+		float cmin = centroid_box.min[best_axis];
+		float cmax = centroid_box.max[best_axis];
+		
+		auto begin = primitives.begin() + start;
+		auto end = begin + size;
+
+		auto mid = std::partition(begin, end, [&](const Primitive& p) {
+			float c = p.bbox().center()[best_axis];
+			float t = (c - cmin) / (cmax - cmin);
+			size_t b = std::min(n_buckets - 1, size_t(t * float(n_buckets)));
+			return b < best_split;
+		});
+
+		size_t left_size = size_t(mid - begin);
+		size_t right_size = size - left_size;
+
+		//validation cehck
+		if (left_size == 0 || right_size == 0) {
+			nodes[node_idx].l = nodes[node_idx].r = 0;
+			return node_idx;
+		}
+
+		//recursive case
+		size_t l = build_res(start, left_size);
+		size_t r = build_res(start + left_size, right_size);
+
+		nodes[node_idx].l = l;
+		nodes[node_idx].r = r;
+		return node_idx;
+	};
+
+	root_idx = build_res(0, primitives.size());
 }
 
 template<typename Primitive> Trace BVH<Primitive>::hit(const Ray& ray) const {
@@ -47,12 +172,53 @@ template<typename Primitive> Trace BVH<Primitive>::hit(const Ray& ray) const {
     // Again, remember you can use hit() on any Primitive value.
 
 	//TODO: replace this code with a more efficient traversal:
-    Trace ret;
-    for(const Primitive& prim : primitives) {
-        Trace hit = prim.hit(ray);
-        ret = Trace::min(ret, hit);
-    }
-    return ret;
+	if (nodes.empty()) return {};
+
+	Trace ret;
+
+	std::function<void(size_t)> find_closest_hit = [&](size_t node_idx) {
+		const Node& node = nodes[node_idx];
+
+		if (node.is_leaf()) {
+			for (size_t i = node.start; i < node.start + node.size; ++i) {
+				ret = Trace::min(ret, primitives[i].hit(ray));
+			}
+		} else {
+			const Node& child1 = nodes[node.l];
+			const Node& child2 = nodes[node.r];
+
+			Vec2 hit1 = ray.dist_bounds;
+			Vec2 hit2 = ray.dist_bounds;
+
+			bool child1_hit = child1.bbox.hit(ray, hit1);
+			bool child2_hit = child2.bbox.hit(ray, hit2);
+
+			if (!child1_hit && !child2_hit) return;
+
+			if (child1_hit && !child2_hit) {
+				find_closest_hit(node.l);
+				return;
+			}
+			if (!child1_hit && child2_hit) {
+				find_closest_hit(node.r);
+				return;
+			}
+
+			size_t first = (hit1.x <= hit2.x) ? node.l : node.r;
+			size_t second = (hit1.x <= hit2.x) ? node.r : node.l;
+
+			Vec2 hitsecond = (hit1.x <= hit2.x) ? hit2 : hit1;
+
+			find_closest_hit(first);
+
+			if (!ret.hit || hitsecond.x < ret.distance) {
+				find_closest_hit(second);
+			}
+		}
+	};
+
+	find_closest_hit(root_idx);
+	return ret;
 }
 
 template<typename Primitive>

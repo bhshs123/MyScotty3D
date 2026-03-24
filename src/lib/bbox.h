@@ -85,8 +85,32 @@ struct BBox {
 		// If the ray intersected the bounding box within the range given by
 		// [times.x,times.y], update times with the new intersection times.
 		// This means at least one of tmin and tmax must be within the range
+		float tmin = times.x;
+		float tmax = times.y;
+		for (int axis = 0; axis < 3; axis++) {
+			float o = ray.point[axis];
+			float d = ray.dir[axis];
+			float bmin = min[axis];
+			float bmax = max[axis];
 
-		return false;
+			if (d == 0.0f) {
+				if (o < bmin || o > bmax) return false;
+				continue;
+			}
+
+			float t0 = (bmin - o) / d;
+			float t1 = (bmax - o) / d;
+
+			if (t0 > t1) std::swap(t0, t1);
+
+			tmin = std::max(tmin, t0);
+			tmax = std::min(tmax, t1);
+
+			if (tmin > tmax) return false;
+		}
+
+		times = Vec2(tmin, tmax);
+		return true;
 	}
 
 	/// Get the eight corner points of the bounding box

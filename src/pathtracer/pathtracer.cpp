@@ -9,8 +9,8 @@
 namespace PT {
 
 constexpr bool SAMPLE_AREA_LIGHTS = true;
-constexpr bool RENDER_NORMALS = false;
-constexpr bool LOG_CAMERA_RAYS = false;
+constexpr bool RENDER_NORMALS = true;
+constexpr bool LOG_CAMERA_RAYS = true;
 constexpr bool LOG_AREA_LIGHT_RAYS = false;
 static thread_local RNG log_rng(0x15462662); //separate RNG for logging a fraction of rays to avoid changing result when logging enabled
 
@@ -358,6 +358,9 @@ void Pathtracer::use_bvh(bool bvh) {
 
 void Pathtracer::log_ray(const Ray& ray, float t, Spectrum color) {
 	std::lock_guard<std::mutex> lock(ray_log_mut);
+	if(log_rng.coin_flip(0.0005f)) {
+		log_ray(ray, 10.0f);
+	}
 	ray_log.push_back(Ray_Log{ray, t, color});
 }
 

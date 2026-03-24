@@ -8,11 +8,9 @@ namespace Samplers {
 
 Vec2 Rect::sample(RNG &rng) const {
 	//A3T1 - step 2 - supersampling
-
     // Return a point selected uniformly at random from the rectangle [0,size.x)x[0,size.y)
     // Useful function: rng.unit()
-
-    return Vec2{};
+    return Vec2(rng.unit() * size.x, rng.unit() * size.y); 
 }
 
 float Rect::pdf(Vec2 at) const {
