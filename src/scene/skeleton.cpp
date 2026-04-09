@@ -46,9 +46,19 @@ std::vector< Mat4 > Skeleton::bind_pose() const {
 	//NOTE: bones is guaranteed to be ordered such that parents appear before child bones.
 
 	for (auto const &bone : bones) {
-		(void)bone; //avoid complaints about unused bone
-		//placeholder -- your code should actually compute the correct transform:
-		bind.emplace_back(Mat4::I);
+		
+		Mat4 local_to_parent;
+		if (bone.parent == -1U) {
+			local_to_parent = Mat4::translate(base);
+		} else {
+			local_to_parent = Mat4::translate(bones[bone.parent].extent);
+		}
+
+		if (bone.parent == -1U) {
+			bind.emplace_back(local_to_parent);
+		} else {
+			bind.emplace_back(bind[bone.parent] * local_to_parent);
+		}
 	}
 
 	assert(bind.size() == bones.size()); //should have a transform for every bone.
@@ -66,9 +76,34 @@ std::vector< Mat4 > Skeleton::current_pose() const {
 	//Useful functions:
 	//Bone::compute_rotation_axes() will tell you what axes (in local bone space) Bone::pose should rotate around.
 	//Mat4::angle_axis(angle, axis) will produce a matrix that rotates angle (in degrees) around a given axis.
+	std::vector< Mat4 > current;
+	current.reserve(bones.size());
+	for (auto const &bone : bones) {
+		Vec3 x, y, z;
+		bone.compute_rotation_axes(&x, &y, &z);
 
-	return std::vector< Mat4 >(bones.size(), Mat4::I);
+		Mat4 rx = Mat4::angle_axis(bone.pose.x, x);
+		Mat4 ry = Mat4::angle_axis(bone.pose.y, y);
+		Mat4 rz = Mat4::angle_axis(bone.pose.z, z);
 
+		Mat4 rotation = rz * ry * rx;
+		Mat4 local_to_parent;
+
+		if (bone.parent == -1U) {
+			local_to_parent = Mat4::translate(base + base_offset) * rotation;
+		} else {
+			local_to_parent = Mat4::translate(bones[bone.parent].extent) * rotation;
+		}
+
+		if (bone.parent == -1U) {
+			current.emplace_back(local_to_parent);
+		} else {
+			current.emplace_back(current[bone.parent] * local_to_parent);
+		}
+	}
+
+	assert(current.size() == bones.size());
+	return current;
 }
 
 std::vector< Vec3 > Skeleton::gradient_in_current_pose() const {
@@ -78,9 +113,47 @@ std::vector< Vec3 > Skeleton::gradient_in_current_pose() const {
 
 	//The IK energy is the sum over all *enabled* handles of the squared distance from the tip of Handle::bone to Handle::target
 	std::vector< Vec3 > gradient(bones.size(), Vec3{0.0f, 0.0f, 0.0f});
-
+	std::vector< Mat4 > pose = current_pose();
 	//TODO: loop over handles and over bones in the chain leading to the handle, accumulating gradient contributions.
 	//remember bone.compute_rotation_axes() -- should be useful here, too!
+
+	for (const auto& handle : handles) {
+		if (!handle.enabled) continue;
+		if (handle.bone >= bones.size()) continue;
+
+		BoneIndex end = handle.bone;
+		//current tip position 
+		Vec3 tip = pose[end] * bones[end].extent;
+		Vec3 error = tip - handle.target;
+ 
+		for (BoneIndex b = end; b != -1U; b = bones[b].parent) {
+			const Bone& bone = bones[b];
+
+			//local rotation axes 
+			Vec3 x, y, z;
+			bone.compute_rotation_axes(&x, &y, &z);
+
+			//In skeleton-local space
+			Vec3 center = pose[b] * Vec3{0.0f, 0.0f, 0.0f};
+ 
+			Mat4 rx = Mat4::angle_axis(bone.pose.x, x);
+			Mat4 ry = Mat4::angle_axis(bone.pose.y, y);
+
+ 			Vec3 axis_x = pose[b].rotate(x); 
+			Vec3 axis_y = (pose[b] * Mat4::angle_axis(-bone.pose.x, x)).rotate(y);
+			Vec3 axis_z = (pose[b] * Mat4::angle_axis(-bone.pose.x, x)
+            				* Mat4::angle_axis(-bone.pose.y, y)).rotate(z);
+
+			Vec3 to_tip = tip - center;
+
+			Vec3 dpx = cross(axis_x, to_tip);
+			Vec3 dpy = cross(axis_y, to_tip);
+			Vec3 dpz = cross(axis_z, to_tip);
+			gradient[b].x += dot(error, dpx);
+			gradient[b].y += dot(error, dpy);
+			gradient[b].z += dot(error, dpz);
+		}
+	}
 
 	assert(gradient.size() == bones.size());
 	return gradient;
@@ -90,12 +163,39 @@ bool Skeleton::solve_ik(uint32_t steps) {
 	//A4T2b - gradient descent
 	//check which handles are enabled
 	//run `steps` iterations
-	
+	bool any_enabled = false;
+	for (const auto& handle : handles) {
+		if (handle.enabled) {
+			any_enabled = true;
+			break;
+		}
+	}
+	if (!any_enabled) return true;
 	//call gradient_in_current_pose() to compute d loss / d pose
 	//add ...
-
 	//if at a local minimum (e.g., gradient is near-zero), return 'true'.
 	//if run through all steps, return `false`.
+	//step size and onvergence threshold
+	const float tau = 1.0f;
+	const float eps = 1e-4f;
+	for (uint32_t ii = 0; ii < steps; ++ii) {
+		std::vector< Vec3 > gradient = gradient_in_current_pose();
+
+		float max_len = 0.0f;
+		for (const auto& g : gradient) {
+			max_len = std::max(max_len, g.norm());
+		}
+
+		//Found a local minimum
+		if (max_len < eps) {
+			return true;
+		}
+
+		for (uint32_t b = 0; b < bones.size(); ++b) {
+			bones[b].pose -= tau * gradient[b];
+		}
+	}
+
 	return false;
 }
 
