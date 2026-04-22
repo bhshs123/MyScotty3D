@@ -6,19 +6,68 @@ bool Particles::Particle::update(const PT::Aggregate &scene, Vec3 const &gravity
 	//A4T4: particle update
 
 	// Compute the trajectory of this particle for the next dt seconds.
+	float time_left = dt;
 
+	auto reflect = [](Vec3 v, Vec3 n) -> Vec3 {
+		return v - 2.0f * dot(v, n) * n;
+	};
+	while (time_left > EPS_F) {
+		float speed = velocity.norm();
+		//If the particle is stationary
+		if (speed <= EPS_F) {
+			position += velocity * time_left;
+			velocity += gravity * time_left;
+			time_left = 0.0f;
+			break;
+		}
+
+		float max_dist = speed * time_left;
 	// (1) Build a ray representing the particle's path as if it travelled at constant velocity.
-
+		Ray ray(position, velocity);
 	// (2) Intersect the ray with the scene and account for collisions. Be careful when placing
 	// collision points using the particle radius. Move the particle to its next position.
-
-	// (3) Account for acceleration due to gravity after updating position.
-
+		PT::Trace intersec = scene.hit(ray);
+		if (!intersec.hit) {
+			position += velocity * time_left;
+			velocity += gravity * time_left;
+			time_left = 0.0f;
+			break;
+		}
+		Vec3 n = intersec.normal.unit();
+		if (!n.valid()) {
+ 			position += velocity * time_left;
+			velocity += gravity * time_left;
+			time_left = 0.0f;
+			break;
+		}
+		if (dot(ray.dir, n) > 0.0f) n = -n;
+		
+		float cos_theta = std::abs(dot(ray.dir, n));
+		if (cos_theta < EPS_F) cos_theta = EPS_F;
+		float actual_dist = intersec.distance - radius / cos_theta;
+		if (actual_dist > max_dist) {
+			position += velocity * time_left;
+			velocity += gravity * time_left;
+			time_left = 0.0f;
+			break;
+		}
+		if (actual_dist <= 0.0f) {
+			velocity = reflect(velocity, n);
+			position += n * EPS_F;
+			continue;
+		}
+		float used = actual_dist / speed;
+		position = ray.at(actual_dist);
+		position += n * EPS_F;
+	// (3) Account for acceleration due to gravity after updating position. 
+		velocity = reflect(velocity, n);
+		velocity += gravity * used;
 	// (4) Repeat until the entire time step has been consumed.
-
+		time_left -= used;
+	}
 	// (5) Decrease the particle's age and return 'false' if it should be removed.
-
-	return false;
+	age -= dt;
+	return age > 0.0f;
 }
 
 void Particles::advance(const PT::Aggregate& scene, const Mat4& to_world, float dt) {
